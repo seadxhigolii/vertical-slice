@@ -1,6 +1,8 @@
+using Carter;
 using Microsoft.EntityFrameworkCore;
 using vertical_slice.Database;
-
+using vertical_slice.Features.Articles;
+using FluentValidation;
 
 namespace vertical_slice
 {
@@ -20,6 +22,14 @@ namespace vertical_slice
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseNpgsql(builder.Configuration.GetConnectionString("Database")));
 
+            var assembly = typeof(Program).Assembly;
+
+            builder.Services.AddMediatR(config => config.RegisterServicesFromAssembly(assembly));
+
+            builder.Services.AddCarter();
+
+            builder.Services.AddValidatorsFromAssembly(assembly);
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
@@ -30,9 +40,7 @@ namespace vertical_slice
 
             }
 
-            app.UseAuthorization();
-
-            app.MapControllers();
+            app.MapCarter();
 
             app.Run();
         }
