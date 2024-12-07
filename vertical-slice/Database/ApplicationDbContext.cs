@@ -9,8 +9,8 @@ namespace vertical_slice.Database
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            //modelBuilder.Entity<Article>(builder =>
-            //    builder.OwnsOne(a=> a.))
+            modelBuilder.Entity<Article>(builder =>
+                builder.OwnsOne(a => a.Tags, tagsBuilder => tagsBuilder.ToString()));
             base.OnModelCreating(modelBuilder);
         }
 

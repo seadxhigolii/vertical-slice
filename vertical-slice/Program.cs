@@ -1,3 +1,6 @@
+using Microsoft.EntityFrameworkCore;
+using vertical_slice.Database;
+
 
 namespace vertical_slice
 {
@@ -14,6 +17,9 @@ namespace vertical_slice
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
+            builder.Services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseNpgsql(builder.Configuration.GetConnectionString("Database")));
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
@@ -21,10 +27,10 @@ namespace vertical_slice
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
+
             }
 
             app.UseAuthorization();
-
 
             app.MapControllers();
 
