@@ -9,25 +9,22 @@ using vertical_slice.Features.Articles;
 
 namespace vertical_slice.Features.Articles
 {
-    public static class CreateArticle
+    public class DeleteArticle
     {
-        public class Command : IRequest<Result<Guid>>
+        public class Command: IRequest<Result<bool>>
         {
-            public string Title { get; set; } = string.Empty;
-
-            public string Content { get; set; } = string.Empty;
+            public Guid Id { get; set; }
         }
 
         public class Validator : AbstractValidator<Command>
         {
             public Validator()
             {
-                RuleFor(c => c.Title).NotEmpty();
-                RuleFor(c => c.Content).NotEmpty();
+                RuleFor(c => c.Id).NotEmpty();
             }
         }
 
-        internal sealed class Handler : IRequestHandler<Command, Result<Guid>>
+        internal sealed class Handler : IRequestHandler<Command, Result<bool>>
         {
 
             private readonly ApplicationDbContext _dbContext;
@@ -39,39 +36,37 @@ namespace vertical_slice.Features.Articles
                 _validator = validator;
             }
 
-            public async Task<Result<Guid>> Handle(Command request, CancellationToken cancellationToken)
+            public async Task<Result<bool>> Handle(Command request, CancellationToken cancellationToken)
             {
                 var validationResult = await _validator.ValidateAsync(request);
                 if (validationResult != null && !validationResult.IsValid)
                 {
-                    return Result<Guid>.Failure(new Error("CreateArticle.Validation", validationResult.ToString()));
+                    return Result<bool>.Failure(new Error("DeleteArticle.Validation", validationResult.ToString()));
                 }
 
-                var article = new Article
+                var article = await _dbContext.Articles.FindAsync(new object[] { request.Id }, cancellationToken);
+                if (article == null)
                 {
-                    Id = Guid.NewGuid(),
-                    Title = request.Title,
-                    Content = request.Content,
-                    CreatedOnUtc = DateTime.UtcNow
-                };
+                    return Result<bool>.Failure(new Error("DeleteArticle.NotFound", "Article not found."));
+                }
 
-                await _dbContext.AddAsync(article, cancellationToken);
+                _dbContext.Articles.Remove(article);
 
                 await _dbContext.SaveChangesAsync(cancellationToken);
 
-                return Result<Guid>.Success(article.Id);
+                return Result<bool>.Success(true);
             }
-
         }
     }
 }
 
-public class CreateArticleEndpoint : ICarterModule
+public class DeleteArticleEndpoint : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapPost("api/Articles", async (CreateArticle.Command command, ISender sender) =>
+        app.MapDelete("api/Articles/{id:guid}", async (Guid id, ISender sender) =>
         {
+            var command = new DeleteArticle.Command { Id = id };
             var result = await sender.Send(command);
 
             if (result.IsFailure)
